@@ -1,0 +1,163 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model candidate_roles {
+  id         Int          @id @default(autoincrement())
+  role_code  String       @unique @db.VarChar(50)
+  name       String       @db.VarChar(255)
+  created_at DateTime?    @default(now()) @db.Timestamp(6)
+  updated_at DateTime?    @default(now()) @db.Timestamp(6)
+  deleted_at DateTime?    @db.Timestamp(6)
+  candidates candidates[]
+}
+
+model candidates {
+  id               Int              @id @default(autoincrement())
+  name             String           @db.VarChar(255)
+  email            String?          @db.VarChar(255)
+  phone            String?          @db.VarChar(50)
+  cv_file_path     String
+  cv_original_name String?          @db.VarChar(255)
+  cv_file_size     Int?
+  cv_source        String?          @db.VarChar(255)
+  school_id        Int?
+  demo_link        String?
+  note             String?
+  level            String?          @db.VarChar(50)
+  role_id          Int?
+  current_state_id Int?
+  salary_offer     Decimal?         @db.Decimal(15, 2)
+  assigned_team_id Int?
+  created_at       DateTime?        @default(now()) @db.Timestamp(6)
+  updated_at       DateTime?        @default(now()) @db.Timestamp(6)
+  deleted_at       DateTime?        @db.Timestamp(6)
+  teams            teams?           @relation(fields: [assigned_team_id], references: [id], onUpdate: NoAction)
+  cv_states        cv_states?       @relation(fields: [current_state_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  candidate_roles  candidate_roles? @relation(fields: [role_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  schools          schools?         @relation(fields: [school_id], references: [id], onUpdate: NoAction)
+  cv_history       cv_history[]
+}
+
+model cv_history {
+  id                                                Int        @id @default(autoincrement())
+  candidate_id                                      Int
+  changed_by_user_id                                Int
+  previous_state_id                                 Int?
+  new_state_id                                      Int?
+  action_type                                       String     @db.VarChar(50)
+  changes_payload                                   Json?
+  change_reason                                     String?
+  created_at                                        DateTime?  @default(now()) @db.Timestamp(6)
+  candidates                                        candidates @relation(fields: [candidate_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users                                             users      @relation(fields: [changed_by_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  cv_states_cv_history_new_state_idTocv_states      cv_states? @relation("cv_history_new_state_idTocv_states", fields: [new_state_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  cv_states_cv_history_previous_state_idTocv_states cv_states? @relation("cv_history_previous_state_idTocv_states", fields: [previous_state_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model cv_states {
+  id                                                 Int            @id @default(autoincrement())
+  state_code                                         cv_status_enum @unique
+  name                                               String         @db.VarChar(255)
+  display_order                                      Int?           @default(0)
+  created_at                                         DateTime?      @default(now()) @db.Timestamp(6)
+  updated_at                                         DateTime?      @default(now()) @db.Timestamp(6)
+  deleted_at                                         DateTime?      @db.Timestamp(6)
+  candidates                                         candidates[]
+  cv_history_cv_history_new_state_idTocv_states      cv_history[]   @relation("cv_history_new_state_idTocv_states")
+  cv_history_cv_history_previous_state_idTocv_states cv_history[]   @relation("cv_history_previous_state_idTocv_states")
+}
+
+model permissions {
+  id               Int                @id @default(autoincrement())
+  permission_code  String             @unique @db.VarChar(50)
+  name             String             @db.VarChar(255)
+  created_at       DateTime?          @default(now()) @db.Timestamp(6)
+  updated_at       DateTime?          @default(now()) @db.Timestamp(6)
+  deleted_at       DateTime?          @db.Timestamp(6)
+  role_permissions role_permissions[]
+}
+
+model role_permissions {
+  role_id       Int
+  permission_id Int
+  permissions   permissions @relation(fields: [permission_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  roles         roles       @relation(fields: [role_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([role_id, permission_id])
+}
+
+model roles {
+  id               Int                @id @default(autoincrement())
+  role_code        String             @unique @db.VarChar(50)
+  name             String             @db.VarChar(255)
+  created_at       DateTime?          @default(now()) @db.Timestamp(6)
+  updated_at       DateTime?          @default(now()) @db.Timestamp(6)
+  deleted_at       DateTime?          @db.Timestamp(6)
+  role_permissions role_permissions[]
+  user_roles       user_roles[]
+}
+
+model schools {
+  id          Int          @id @default(autoincrement())
+  school_code String       @unique @db.VarChar(50)
+  name        String       @db.VarChar(255)
+  created_at  DateTime?    @default(now()) @db.Timestamp(6)
+  updated_at  DateTime?    @default(now()) @db.Timestamp(6)
+  deleted_at  DateTime?    @db.Timestamp(6)
+  candidates  candidates[]
+}
+
+model teams {
+  id          Int          @id @default(autoincrement())
+  team_code   String       @unique @db.VarChar(50)
+  name        String       @unique @db.VarChar(255)
+  description String?
+  created_at  DateTime?    @default(now()) @db.Timestamp(6)
+  updated_at  DateTime?    @default(now()) @db.Timestamp(6)
+  deleted_at  DateTime?    @db.Timestamp(6)
+  candidates  candidates[]
+  user_roles  user_roles[]
+}
+
+model user_roles {
+  id        Int     @id @default(autoincrement())
+  user_id   Int
+  username  String  @db.VarChar(100)
+  role_id   Int
+  role_code String  @db.VarChar(50)
+  team_id   Int?
+  team_code String? @db.VarChar(50)
+  roles     roles   @relation(fields: [role_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  teams     teams?  @relation(fields: [team_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users     users   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([user_id, role_id, team_id])
+}
+
+model users {
+  id            Int          @id @default(autoincrement())
+  username      String       @unique @db.VarChar(100)
+  password_hash String       @db.VarChar(255)
+  full_name     String       @db.VarChar(255)
+  created_at    DateTime?    @default(now()) @db.Timestamp(6)
+  updated_at    DateTime?    @default(now()) @db.Timestamp(6)
+  deleted_at    DateTime?    @db.Timestamp(6)
+  cv_history    cv_history[]
+  user_roles    user_roles[]
+}
+
+enum cv_status_enum {
+  Sourcing
+  HR_Screening
+  Manager_Review
+  Interviewing
+  Offering
+  Onboarding
+  Rejected
+}

@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: quanlycv_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: quanlycv_user
+      POSTGRES_PASSWORD: quanlycv_password
+      POSTGRES_DB: quanlycv_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - quanlycv_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  quanlycv_postgres_data:
