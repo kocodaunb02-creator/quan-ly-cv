@@ -83,7 +83,7 @@ if (isMockMode) {
         }
 
         // 3. Mock Chi tiết một ứng viên
-        if (url?.match(/\/\d+$/) && method === 'get') {
+        if (url?.match(/^\/candidates\/\d+$/) && method === 'get') {
             const id = parseInt(url.split('/').pop() || '1');
             return {
                 data: {
@@ -111,21 +111,73 @@ if (isMockMode) {
 
         // 4. Mock Lịch sử ứng viên
         if (url?.startsWith('/history/candidates/') && method === 'get') {
-            return {
-                data: {
-                    data: [
-                        {
-                            id: 1,
-                            action_type: 'CREATE',
-                            old_state: null,
-                            new_state: { name: 'Tiếp nhận CV', state_code: 'Sourcing' },
-                            cv_states_cv_history_new_state_idTocv_states: { name: 'Tiếp nhận CV', state_code: 'Sourcing' },
-                            users: { name: 'Admin', email: 'admin@demo.com' },
-                            changes_payload: null,
-                            created_at: new Date(Date.now() - 86400000 * 3).toISOString()
-                        }
-                    ]
+            const id = parseInt(url.split('/').pop() || '1');
+            const historyData: any[] = [
+                {
+                    id: 1,
+                    action_type: 'CREATE',
+                    new_state: { name: 'Tiếp nhận CV', state_code: 'Sourcing' },
+                    cv_states_cv_history_new_state_idTocv_states: { name: 'Tiếp nhận CV', state_code: 'Sourcing' },
+                    users: { name: 'Admin', email: 'admin@demo.com' },
+                    created_at: new Date(Date.now() - 86400000 * 5).toISOString()
                 },
+                {
+                    id: 2,
+                    action_type: 'UPDATE_INFO',
+                    new_state: { name: 'Tiếp nhận CV', state_code: 'Sourcing' },
+                    cv_states_cv_history_new_state_idTocv_states: { name: 'Tiếp nhận CV', state_code: 'Sourcing' },
+                    users: { name: 'HR Executive', email: 'hr@demo.com' },
+                    changes_payload: {
+                        phone: { old: '0911223344', new: '0988776655' },
+                        email: { old: null, new: 'ungvien.moi@gmail.com' },
+                        cv_source: { old: 'Facebook', new: 'LinkedIn' },
+                        note: 'Cập nhật lại thông tin liên lạc ứng viên.'
+                    },
+                    created_at: new Date(Date.now() - 86400000 * 4.5).toISOString()
+                },
+                {
+                    id: 3,
+                    action_type: 'UPDATE_STATE',
+                    old_state: { name: 'Tiếp nhận CV', state_code: 'Sourcing' },
+                    new_state: { name: 'Sơ loại HR', state_code: 'HR_Screening' },
+                    cv_states_cv_history_previous_state_idTocv_states: { name: 'Tiếp nhận CV', state_code: 'Sourcing' },
+                    cv_states_cv_history_new_state_idTocv_states: { name: 'Sơ loại HR', state_code: 'HR_Screening' },
+                    users: { name: 'HR Executive', email: 'hr@demo.com' },
+                    changes_payload: { note: 'CV đạt chuẩn sơ loại, đã check kinh nghiệm OK.' },
+                    created_at: new Date(Date.now() - 86400000 * 4).toISOString()
+                }
+            ];
+
+            // Nếu không phải ID chẵn (Sơ loại HR mặc định) thì cho thêm lịch sử tới bước Phỏng vấn/Manager Review
+            if (id % 2 !== 0) {
+                historyData.push({
+                    id: 4,
+                    action_type: 'ASSIGN',
+                    new_state: { name: 'Sơ loại HR', state_code: 'HR_Screening' },
+                    cv_states_cv_history_new_state_idTocv_states: { name: 'Sơ loại HR', state_code: 'HR_Screening' },
+                    users: { name: 'Admin', email: 'admin@demo.com' },
+                    changes_payload: {
+                        assigned_team_id: { old: null, new: 1 },
+                        note: 'Giao hồ sơ cho Team Phát triển đánh giá chuyên môn.'
+                    },
+                    created_at: new Date(Date.now() - 86400000 * 3).toISOString()
+                });
+
+                historyData.push({
+                    id: 5,
+                    action_type: 'UPDATE_STATE',
+                    old_state: { name: 'Sơ loại HR', state_code: 'HR_Screening' },
+                    new_state: { name: 'Phỏng vấn', state_code: 'Interviewing' },
+                    cv_states_cv_history_previous_state_idTocv_states: { name: 'Sơ loại HR', state_code: 'HR_Screening' },
+                    cv_states_cv_history_new_state_idTocv_states: { name: 'Phỏng vấn', state_code: 'Interviewing' },
+                    users: { name: 'Dev Lead', email: 'lead@demo.com' },
+                    changes_payload: { note: 'Hồ sơ pass, đã sắp xếp lịch phỏng vấn T5 tuần sau.' },
+                    created_at: new Date(Date.now() - 86400000 * 2).toISOString()
+                });
+            }
+
+            return {
+                data: { data: historyData.reverse() }, // Trả về dạng mới nhất lên đầu
                 status: 200, statusText: 'OK', headers: {}, config, request: {}
             };
         }
