@@ -5,8 +5,8 @@ import apiClient from '../services/apiClient';
 import { LogIn, KeySquare, UserCircle2, Eye, EyeOff } from 'lucide-react';
 
 const Login: React.FC = () => {
-    const [username, setUsername] = useState('');
-    const [password, setPassword] = useState('');
+    const [username, setUsername] = useState('admin'); // Pre-fill mock user
+    const [password, setPassword] = useState('admin'); // Pre-fill mock pass
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
