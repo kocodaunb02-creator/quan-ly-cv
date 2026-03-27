@@ -36,6 +36,17 @@ Vòng đời CV tuân thủ nghiêm ngặt mô hình luồng trạng thái 1 chi
 
 ---
 
+## 📈 Advanced Features (Tư duy Quản trị vận hành)
+
+### Hệ thống Quản lý Job Bất đồng bộ (BullMQ & Redis)
+- **Pain point:** `node-cron` truyền thống thiếu khả năng chịu lỗi, không lưu vết và gây block Main Thread khi xử lý lượng lớn dữ liệu (Quét trùng lặp CV, Auto-Cleanup).
+- **Giải pháp BullMQ:** 
+  - Đảm bảo tính nhất quán của background tasks với cơ chế **Queue / Worker** chuyên biệt.
+  - Tự động hóa tiến trình **Retry mechanism (Backoff strategy)** khi có sự cố hệ thống.
+  - Dễ dàng trực quan hóa dòng chảy vận hành thông qua các Dashboard giám sát Queue, thể hiện tư duy quản trị rủi ro ở cấp độ kiến trúc hệ thống.
+
+---
+
 ## 📂 Project Structure (Cấu trúc dự án)
 
 Dự án được phân chia theo kiến trúc Frontend/Backend cô lập và quản lý chặt chẽ bằng Document Rules.

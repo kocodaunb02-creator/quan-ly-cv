@@ -69,3 +69,7 @@ stateDiagram-v2
 ### 4.3. Bảo mật & Lưu trữ
 * **Bảo mật**: Chỉ HR mới được phép thao tác và xem các trường dữ liệu liên quan đến mức lương (Salary Offer).
 * **Lưu trữ**: CV không đạt sẽ được lưu trữ vĩnh viễn ở trạng thái Rejected để tái sử dụng nguồn lực trong tương lai.
+
+### 4.4. Nghiệp vụ Chống Trùng Lặp và Dọn Dẹp (Data Integrity)
+* **Check trùng lặp tự động**: Khi nhận CV mới, hệ thống tự động quét cờ `Phone` hoặc `Email` để tìm các hồ sơ đã có sẵn. Nếu phát hiện trùng, hệ thống sẽ bật Cảnh báo (cung cấp khả năng bypass `Force Create` hoặc xem chi tiết hồ sơ cũ).
+* **Dọn dẹp CV tự động (Cronjob)**: Hàng đêm vào lúc `00:00`, hệ thống tự động kích hoạt tiến trình chạy ngầm để xóa mềm (`soft-delete`) các hồ sơ không có cập nhật (tính theo `updated_at`) trong vòng 6 tháng qua. Quá trình kiểm tra trùng lặp sẽ tự động bỏ qua các hồ sơ đã bị xóa mềm này để không cản trở việc tạo mới ứng viên quay lại ứng tuyển.

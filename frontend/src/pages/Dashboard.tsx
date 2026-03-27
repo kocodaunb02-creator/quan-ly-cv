@@ -155,6 +155,10 @@ const Dashboard: React.FC = () => {
                 isOpen={isUploadModalOpen}
                 onClose={() => setIsUploadModalOpen(false)}
                 onUploadSuccess={fetchCandidates}
+                onViewDuplicate={(id) => {
+                    setIsUploadModalOpen(false);
+                    handleViewDetail(id);
+                }}
             />
 
             <UpdateModal

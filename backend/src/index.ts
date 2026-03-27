@@ -6,6 +6,11 @@ import authRoutes from './routes/auth.routes.js';
 import candidateRoutes from './routes/candidate.routes.js';
 import workflowRoutes from './routes/workflow.routes.js';
 import historyRoutes from './routes/history.routes.js';
+import { cleanupQueue } from './queues/cleanup.queue.js';
+import { createBullBoard } from '@bull-board/api';
+import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
+import { ExpressAdapter } from '@bull-board/express';
+import './queues/cleanup.queue.js';
 
 dotenv.config();
 
@@ -22,6 +27,17 @@ app.use('/api/auth', authRoutes);
 app.use('/api/candidates', candidateRoutes);
 app.use('/api/workflow', workflowRoutes);
 app.use('/api/history', historyRoutes);
+
+// Bull-Board Configuration (Admin Queue Board)
+const serverAdapter = new ExpressAdapter();
+serverAdapter.setBasePath('/admin/queues');
+
+createBullBoard({
+  queues: [new BullMQAdapter(cleanupQueue)],
+  serverAdapter: serverAdapter,
+});
+
+app.use('/admin/queues', serverAdapter.getRouter());
 
 // Serve static files from uploads folder
 import path from 'path';

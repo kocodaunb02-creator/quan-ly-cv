@@ -7,7 +7,7 @@ import { hasCandidateActionPermission } from '../utils/permission.util.js';
 
 export const uploadCandidateCV = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-        const { name, email, phone, role_code, level, school_code, demo_link, cv_source, note } = req.body;
+        const { name, email, phone, role_code, level, school_code, demo_link, cv_source, note, forceCreate } = req.body;
         const file = req.file;
 
         if (!file) {
@@ -18,6 +18,39 @@ export const uploadCandidateCV = async (req: AuthRequest, res: Response): Promis
         if (!name) {
             res.status(400).json({ message: 'Tên ứng viên là bắt buộc.' });
             return;
+        }
+
+        // Duplicate Check Logic
+        if (forceCreate !== 'true' && forceCreate !== true) {
+            const orConditions: any[] = [];
+            if (email) orConditions.push({ email });
+            if (phone) orConditions.push({ phone });
+
+            if (orConditions.length > 0) {
+                const duplicates = await prisma.candidates.findMany({
+                    where: {
+                        OR: orConditions,
+                        deleted_at: null
+                    },
+                    include: {
+                        cv_states: true
+                    }
+                });
+
+                if (duplicates.length > 0) {
+                    res.status(409).json({
+                        message: 'Phát hiện thông tin liên lạc trùng lặp.',
+                        duplicates: duplicates.map(d => ({
+                            id: d.id,
+                            name: d.name,
+                            phone: d.phone,
+                            email: d.email,
+                            state: d.cv_states?.name || d.cv_states?.state_code || 'Unknown'
+                        }))
+                    });
+                    return;
+                }
+            }
         }
 
         // Process foreign keys if they exist in request

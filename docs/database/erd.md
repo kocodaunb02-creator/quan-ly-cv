@@ -120,7 +120,7 @@ erDiagram
         int assigned_team_id FK "Nullable - Liên kết tới bảng TEAMS. Team đang quản lý CV này"
         timestamp created_at "Thời gian tạo"
         timestamp updated_at "Thời gian cập nhật cuối"
-        timestamp deleted_at "Soft Delete"
+        timestamp deleted_at "Soft Delete (Tự động cập nhật bởi Cronjob sau 180 ngày)"
     }
 
     CV_HISTORY {

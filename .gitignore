@@ -1,1 +1,21 @@
-﻿node_modules/
+# Dependencies
+node_modules/
+
+# Environment variables
+.env
+
+# Build output
+dist/
+build/
+
+# IDE and OS
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Agent / AI artifacts
+.gemini/
+
+# Project specific ignores
+backend/uploads/
+uploads/

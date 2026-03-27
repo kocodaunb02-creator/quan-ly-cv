@@ -59,9 +59,10 @@ interface UploadModalProps {
     isOpen: boolean;
     onClose: () => void;
     onUploadSuccess: () => void;
+    onViewDuplicate?: (candidateId: number) => void;
 }
 
-const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onUploadSuccess }) => {
+const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onUploadSuccess, onViewDuplicate }) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [file, setFile] = useState<File | null>(null);
     const [name, setName] = useState('');
@@ -77,6 +78,7 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onUploadSucc
 
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [duplicateCandidates, setDuplicateCandidates] = useState<any[]>([]);
 
     if (!isOpen) return null;
 
@@ -109,8 +111,7 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onUploadSucc
         }
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const submitFile = async (force: boolean = false) => {
         setError(null);
 
         if (!file) {
@@ -128,6 +129,7 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onUploadSucc
         try {
             const formData = new FormData();
             formData.append('cvFile', file);
+            if (force) formData.append('forceCreate', 'true');
             if (salaryOffer) {
                 formData.append('salary_offer', salaryOffer.replace(/,/g, ''));
             }
@@ -143,7 +145,7 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onUploadSucc
 
             await apiClient.post('/candidates/upload', formData, {
                 headers: {
-                    'Content-Type': 'multipart/form-data',
+                    'Content-Type': 'multipart/form-data'
                 }
             });
 
@@ -158,16 +160,26 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onUploadSucc
             setDemoLink('');
             setCvSource('');
             setSalaryOffer('');
+            setDuplicateCandidates([]);
 
             onUploadSuccess();
             onClose();
 
         } catch (err: any) {
             console.error('Upload Error:', err);
-            setError(err.response?.data?.message || 'Có lỗi xảy ra khi upload CV.');
+            if (err.response?.status === 409) {
+                setDuplicateCandidates(err.response.data.duplicates || []);
+            } else {
+                setError(err.response?.data?.message || 'Có lỗi xảy ra khi upload CV.');
+            }
         } finally {
             setIsLoading(false);
         }
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        submitFile(false);
     };
 
     return (
@@ -196,11 +208,77 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onUploadSucc
                 </div>
 
                 {/* Body Form */}
-                <div className="p-8 overflow-y-auto custom-scrollbar flex-1">
-                    <form id="upload-form" onSubmit={handleSubmit} className="flex flex-col gap-6">
+                {duplicateCandidates.length > 0 ? (
+                    <div className="p-8 flex-1 flex flex-col items-center">
+                        <div className="bg-orange-50 w-full p-4 rounded-xl border border-orange-200 mb-6 flex gap-3">
+                            <AlertCircle className="w-6 h-6 text-orange-500 shrink-0 mt-1" />
+                            <div>
+                                <h4 className="text-orange-800 font-bold mb-1 border-b border-orange-200 pb-2">Phát hiện thông tin trùng lặp!</h4>
+                                <p className="text-orange-700 text-sm mt-2">Hệ thống phát hiện Số điện thoại hoặc Email này đã tồn tại trên một hoặc nhiều hồ sơ khác. Vui lòng kiểm tra danh sách bên dưới:</p>
+                            </div>
+                        </div>
 
-                        {/* File Upload Area */}
-                        <div>
+                        <div className="w-full flex-1 overflow-y-auto max-h-[280px] border border-slate-200 bg-white rounded-lg p-3 flex flex-col gap-3 custom-scrollbar shadow-inner">
+                            {duplicateCandidates.map((dup: any) => (
+                                <div key={dup.id} className="bg-slate-50 border border-slate-200 rounded-xl p-5 flex justify-between items-center transition-all hover:border-indigo-200 hover:shadow-sm">
+                                    <div className="flex flex-col gap-3">
+                                        <p className="text-sm font-medium text-slate-500">ID Hồ sơ: <span className="font-bold text-slate-900 ml-2">#{dup.id}</span></p>
+                                        <p className="text-sm font-medium text-slate-500">Họ và tên: <span className="font-bold text-slate-900 ml-2">{dup.name}</span></p>
+                                        {dup.phone && <p className="text-sm font-medium text-slate-500">Số ĐT: <span className="font-bold text-slate-900 ml-2">{dup.phone}</span></p>}
+                                        {dup.email && <p className="text-sm font-medium text-slate-500">Email: <span className="font-bold text-slate-900 ml-2">{dup.email}</span></p>}
+                                        <div className="flex items-center gap-2 mt-1">
+                                            <span className="text-sm font-medium text-slate-500">Trạng thái:</span>
+                                            <span className="bg-blue-100 text-blue-800 text-xs font-semibold px-3 py-1 rounded-full border border-blue-200">{dup.state}</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-col gap-2">
+                                        <button 
+                                            type="button" 
+                                            onClick={() => {
+                                                if (onViewDuplicate) onViewDuplicate(dup.id);
+                                            }}
+                                            className="px-5 py-2.5 bg-indigo-50 text-indigo-700 text-sm font-semibold rounded-lg hover:bg-indigo-100 transition-colors border border-indigo-100 shadow-sm"
+                                        >
+                                            Xem CV
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        <p className="w-full text-sm text-slate-600 mt-5 text-center px-4 font-medium">Bạn có muốn mở danh sách hồ sơ bị trùng trên trang Quản lý, hay tiếp tục ép lưu (Force Create) hồ sơ này?</p>
+
+                        <div className="w-full flex justify-end gap-3 mt-6 pt-5 border-t border-slate-100">
+                            <button
+                                type="button"
+                                onClick={() => setDuplicateCandidates([])}
+                                className="px-6 py-2.5 text-sm font-semibold border border-slate-300 text-slate-600 rounded-lg hover:bg-slate-50 hover:text-slate-900 transition-colors shadow-sm focus:ring-2 focus:ring-slate-200 bg-white"
+                            >
+                                Quay lại
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => submitFile(true)}
+                                disabled={isLoading}
+                                className="px-6 py-2.5 text-sm font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700 transition-all shadow-sm shadow-red-500/30 ring-1 ring-red-500/50 focus:ring-4 focus:ring-red-100 flex items-center gap-2 disabled:opacity-70"
+                            >
+                                {isLoading ? (
+                                    <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                ) : null}
+                                {isLoading ? 'Đang lưu...' : 'Vẫn tạo mới'}
+                            </button>
+                        </div>
+                    </div>
+                ) : (
+                    <>
+                        <div className="p-8 overflow-y-auto custom-scrollbar flex-1">
+                            <form id="upload-form" onSubmit={handleSubmit} className="flex flex-col gap-6">
+
+                                {/* File Upload Area */}
+                                <div>
                             <label className="text-sm font-semibold text-slate-700 mb-2 block">Upload File CV <span className="text-red-500">*</span></label>
 
                             {!file ? (
@@ -389,28 +467,23 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onUploadSucc
                     <button
                         type="button"
                         onClick={onClose}
-                        disabled={isLoading}
-                        className="px-5 py-2.5 text-sm font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:text-slate-800 transition-all focus:outline-none focus:ring-2 focus:ring-slate-200 disabled:opacity-50"
+                        className="px-6 py-2.5 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:text-slate-900 transition-colors"
                     >
-                        Hủy bỏ
+                        Hủy
                     </button>
                     <button
-                        type="submit"
-                        form="upload-form"
-                        disabled={isLoading}
-                        className="flex items-center gap-2 px-6 py-2.5 text-sm font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-all shadow-sm shadow-indigo-600/30 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 disabled:opacity-70"
+                        type="button"
+                        onClick={handleSubmit}
+                        disabled={isLoading || !file || !roleCode}
+                        className="px-6 py-2.5 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
-                        {isLoading ? (
-                            <svg className="animate-spin -ml-1 mr-1 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                        ) : <CheckCircle2 className="w-4 h-4" />}
-                        Tạo Hồ Sơ
+                        {isLoading ? 'Đang tải lên...' : 'Tải lên & Lưu'}
                     </button>
                 </div>
-            </div>
-        </div>
+            </>
+        )}
+    </div>
+</div>
     );
 };
 

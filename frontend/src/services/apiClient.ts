@@ -9,7 +9,8 @@ const apiClient = axios.create({
 });
 
 // THIẾT LẬP MOCK DATA CHO VERCEL DEMO (Không có Backend)
-const isMockMode = true;
+// @ts-ignore
+const isMockMode = import.meta.env.VITE_USE_MOCK !== 'false';
 
 if (isMockMode) {
     apiClient.defaults.adapter = async (config) => {
